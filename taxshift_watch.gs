@@ -107,7 +107,11 @@ function claude_(prompt, maxTokens) {
     .map(function (b) { return b.text; }).join("");
 }
 
-function json_(t) { return JSON.parse(t.match(/\{[\s\S]*\}/)[0]); }
+function json_(t) {
+  const m = t.match(/\{[\s\S]*\}/);
+  if (!m) throw new Error("AI 응답에 JSON이 없음");
+  return JSON.parse(m[0]);
+}
 
 // 1) 변경점 카드
 function summarize_(law, old, nw) {
@@ -203,7 +207,7 @@ function judge_(old, nw, q) {
 function oneQuestion_(gen, law, old, nw) {
   const o = { q: null, 단계: "오류", 사유: "" };
   try {
-    for (let k = 0; k < 2; k++) {                       // 응답 형식 오류만 재시도
+    for (let k = 0; k < 3; k++) {                       // 응답 형식 오류만 재시도
       try { o.q = gen(law, old, nw); break; } catch (e) { o.사유 = String(e).slice(0, 80); }
     }
     if (!o.q) return o;

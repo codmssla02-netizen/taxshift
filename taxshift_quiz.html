@@ -96,7 +96,7 @@ details summary{cursor:pointer;font-weight:700;font-size:.9rem}
       <li><b>시행일은 법령 전체 기준으로만 판단합니다.</b> 한 개정 안에서 조문마다 시행일이 다른 경우(부분 시행)는 구분하지 못합니다. 문제의 조문이 시험일에 실제로 시행 중인지는 법제처 원문의 부칙에서 직접 확인하세요.</li>
       <li><b>전문가(세무사·회계사 등) 검수를 거치지 않았습니다.</b> 자동 검증은 근거 문장 일치 같은 기계적 점검일 뿐, 법 해석이 맞다는 보장이 아닙니다.</li>
     </ul></div>
-  <div class="note"><b>데모입니다.</b> 이 화면의 문제는 2026-11-02 Colab에서 실제로 생성하고 자동 검증한 것입니다. 정답과 법적 해석의 정확성은 보장되지 않으며, 원문 조문과 함께 확인해야 합니다. 로그인, 새 문제 생성, 기록의 영구 저장은 아직 없습니다.</div>
+  <div class="note" id="demonote"><b>데모입니다.</b> 이 화면의 문제는 2026-11-02 Colab에서 실제로 생성하고 자동 검증한 것입니다. 정답과 법적 해석의 정확성은 보장되지 않으며, 원문 조문과 함께 확인해야 합니다. 로그인, 새 문제 생성, 기록의 영구 저장은 아직 없습니다.</div>
 
   <div class="note" style="background:var(--bg)"><b>내 Colab 결과 불러오기.</b> Colab 통합 셀이 만든 <code>taxshift_run.json</code>을 고르면, 검증을 통과한 문제로 이 화면이 바뀝니다. 파일은 이 브라우저 안에서만 읽고 어디에도 보내지 않습니다.
     <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center"><input type="file" id="file" accept=".json,application/json"><button class="btn ghost" id="savedrun">저장된 실행 결과 보기 (비상용)</button><button class="btn ghost" id="resetdata" hidden>샘플로 되돌리기</button></div>
@@ -442,7 +442,7 @@ const INFO = {
 };
 const ORDER = ["국세기본법","법인세법","소득세법","부가가치세법"];
 let items = DATA.items.map((it,i)=>({...it,id:i}));
-let loaded = false, RAW = null;
+let loaded = false, RAW = null, autoMode = false;
 const RUN_SAVED = [
  {
   "법령": "법인세법",
@@ -776,7 +776,7 @@ function renderInfo(){
   if(tab==="요약"){ $("lawinfo").innerHTML = "<span>시험일에 시행 중인 개정의 변경점 카드를 법령별로 모았습니다. 문제를 풀기 전에 훑어보는 용도입니다.</span>"; return; }
   if(tab==="오답노트"){ $("lawinfo").innerHTML = "<span>틀린 문제를 근거 조문과 함께 모아 봅니다. 이 브라우저에만 저장됩니다.</span>"; return; }
   const i = INFO[tab];
-  $("lawinfo").innerHTML = `<span>공포 ${i.pub}</span><span>시행 ${i.eff}</span><span>${i.kind}</span>` + (tab==="국세기본법"?`<span class="pill ok">오늘(11/2) 기준 새로 감지된 개정</span>`:`<span class="pill warn">최근 공포 개정(60일 밖, 시연용)</span>`);
+  $("lawinfo").innerHTML = `<span>공포 ${i.pub}</span><span>시행 ${i.eff}</span><span>${i.kind}</span>` + (autoMode?`<span class="pill warn">이 법령의 최신 개정(자동 수집)</span>`:(tab==="국세기본법"?`<span class="pill ok">오늘(11/2) 기준 새로 감지된 개정</span>`:`<span class="pill warn">최근 공포 개정(60일 밖, 시연용)</span>`));
 }
 function cardHTML(x, open){
   const c = x.카드; if(!c) return "";
@@ -1040,6 +1040,8 @@ async function autoLoad(){
     const arr=Array.isArray(d)?d:d.results;
     if(!Array.isArray(arr)||!arr.length||!("단계" in arr[0])) throw new Error("empty");
     applyInfo(arr);
+    autoMode=true;
+    $("demonote").innerHTML="<b>데모입니다.</b> 이 화면의 문제는 Apps Script가 법제처 최신 개정을 가져와 자동으로 생성·검증한 결과입니다(갱신 시각은 위 문구 참고). 정답과 법적 해석의 정확성은 보장되지 않으며, 원문 조문과 함께 확인해야 합니다. 로그인, 새 문제 생성 버튼, 기록의 영구 저장은 아직 없습니다. 일부 결과는 저장 기록을 되돌리는 시연으로 만들어졌을 수 있습니다.";
     loadRun(arr,"자동 수집 결과"+(d.generated?" ("+d.generated+" 갱신)":""));
   }catch(err){ $("loadmsg").textContent="자동 수집 결과를 불러오지 못해 샘플 화면을 보여 줍니다."; }
 }
