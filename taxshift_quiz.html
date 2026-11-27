@@ -26,6 +26,12 @@ h1{font-size:1.75rem;line-height:1.25;margin:0;text-wrap:balance}
 .sub{color:var(--muted);margin:4px 0 0}
 .note{background:var(--warn-soft);color:var(--ink);border-left:4px solid var(--warn);padding:12px 16px;border-radius:6px;font-size:.92rem}
 .note b{color:var(--warn)}
+.limits{border:2px solid var(--warn);background:var(--warn-soft);border-radius:8px;padding:12px 16px;font-size:.92rem}
+.limits b.t{display:block;color:var(--warn);margin-bottom:4px}
+.limits ul{margin:0;padding-left:1.2em}
+.limits li{margin:2px 0}
+.cardwarn{font-size:.8rem;color:var(--warn);background:var(--warn-soft);border-radius:6px;padding:4px 10px;margin:6px 0 0}
+
 .bar{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;justify-content:space-between}
 .field{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .field label{font-weight:700;font-size:.9rem}
@@ -85,6 +91,11 @@ details summary{cursor:pointer;font-weight:700;font-size:.9rem}
     <h1>TaxShift 문제 풀이 화면</h1>
     <p class="sub" id="sub"></p>
   </header>
+  <div class="limits" role="note"><b class="t">이용 전 꼭 확인하세요 — 이 화면의 한계</b>
+    <ul>
+      <li><b>시행일은 법령 전체 기준으로만 판단합니다.</b> 한 개정 안에서 조문마다 시행일이 다른 경우(부분 시행)는 구분하지 못합니다. 문제의 조문이 시험일에 실제로 시행 중인지는 법제처 원문의 부칙에서 직접 확인하세요.</li>
+      <li><b>전문가(세무사·회계사 등) 검수를 거치지 않았습니다.</b> 자동 검증은 근거 문장 일치 같은 기계적 점검일 뿐, 법 해석이 맞다는 보장이 아닙니다.</li>
+    </ul></div>
   <div class="note"><b>데모입니다.</b> 이 화면의 문제는 2026-11-02 Colab에서 실제로 생성하고 자동 검증한 것입니다. 정답과 법적 해석의 정확성은 보장되지 않으며, 원문 조문과 함께 확인해야 합니다. 로그인, 새 문제 생성, 기록의 영구 저장은 아직 없습니다.</div>
 
   <div class="note" style="background:var(--bg)"><b>내 Colab 결과 불러오기.</b> Colab 통합 셀이 만든 <code>taxshift_run.json</code>을 고르면, 검증을 통과한 문제로 이 화면이 바뀝니다. 파일은 이 브라우저 안에서만 읽고 어디에도 보내지 않습니다.
@@ -807,6 +818,7 @@ function qCard(x, idx, total, sel, showNav){
   return `<article class="card">
     <div class="cardhead"><span class="qno">문제 ${idx+1} / ${total}</span><span class="pill">${esc(x.법령)}</span>${x.유형==="O/X"?`<span class="pill warn">O/X</span>`:""}</div>
     <p class="q">${esc(x.문제)}</p>
+    <div class="cardwarn">⚠ 시행일은 법령 전체 기준이며 조문별 부분 시행은 구분하지 않습니다 · 전문가 검수 전 · 부칙·원문 확인 필수</div>
     <ul class="choices">${ch}</ul>
     ${cardHTML(x, sel!==undefined)}
     ${sel!==undefined?resultHTML(x,sel):`<div class="ai">보기를 고르면 정답과 근거 조문, 개정 전후 비교가 나옵니다. 변경점 카드는 정답이 드러나므로, 푼 뒤에 펼쳐집니다.</div>`}
@@ -1013,5 +1025,24 @@ $("file").addEventListener("change",e=>{
 });
 $("savedrun").onclick=()=>loadRun(RUN_SAVED,"저장된 실행(2026-11-02 16:22, 검증기 수정 전)");
 $("resetdata").onclick=()=>location.reload();
+// 자동 흐름: Apps Script 웹 앱 주소를 넣으면, 화면이 열릴 때 최신 결과를 자동으로 불러옵니다(비워 두면 샘플 화면)
+const AUTO_URL = "https://script.google.com/macros/s/AKfycbz45S7hwNajdsK0mzd3K0PtVkFRb9Cm5HxPX0VsOsAITcG93Hsg7CLN6L5S5RrdngN8RQ/exec";   // 예: https://script.google.com/macros/s/.../exec
+function applyInfo(arr){
+  const f=d=>/^\d{4}-\d{2}-\d{2}$/.test(d||"")?d:null;
+  arr.forEach(r=>{ if(f(r.공포)&&f(r.시행)) INFO[r.법령]={pub:r.공포,eff:r.시행,kind:r.구분||"개정"}; });
+}
+async function autoLoad(){
+  if(!AUTO_URL) return;
+  $("loadmsg").textContent="자동 수집 결과를 불러오는 중...";
+  try{
+    const res=await fetch(AUTO_URL,{cache:"no-store"});
+    const d=await res.json();
+    const arr=Array.isArray(d)?d:d.results;
+    if(!Array.isArray(arr)||!arr.length||!("단계" in arr[0])) throw new Error("empty");
+    applyInfo(arr);
+    loadRun(arr,"자동 수집 결과"+(d.generated?" ("+d.generated+" 갱신)":""));
+  }catch(err){ $("loadmsg").textContent="자동 수집 결과를 불러오지 못해 샘플 화면을 보여 줍니다."; }
+}
+autoLoad();
 render();
 </script>
